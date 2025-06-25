@@ -12,5 +12,6 @@
         public string? ZodiacSign { get; set; }
         public int Score { get; set; } = 100;
         public int WinStreak { get; set; } = 0; // <-- Убедитесь, что эта строка есть
+        public int BugChaseHighScore { get; set; } = 0;
     }
 }

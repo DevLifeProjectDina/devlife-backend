@@ -1,4 +1,5 @@
-﻿using DevLifeBackend.Data;
+﻿// File: Endpoints/AdminEndpoints.cs
+using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
@@ -10,12 +11,13 @@ public static class AdminEndpoints
     public static WebApplication MapAdminEndpoints(this WebApplication app)
     {
         var adminGroup = app.MapGroup("/api/admin").WithTags("Admin");
+
+        // FIX: The endpoint now correctly accepts 'MongoDbContext' to save the new snippet.
         adminGroup.MapPost("/casino/generate-snippet",
-            async (GenerateSnippetRequestDto request, ICodewarsService codewarsService, IAiSnippetGeneratorService aiService, ApplicationDbContext db) =>
+            async (GenerateSnippetRequestDto request, ICodewarsService codewarsService, IAiSnippetGeneratorService aiService, MongoDbContext mongoDb) =>
             {
-                // FIX 1: Use the difficulty from the request
-                var task = await codewarsService.GetRandomTaskAsync(request.Language, request.Difficulty);
-                if (task == null) { return Results.NotFound($"Could not find a task for language '{request.Language}' and difficulty '{request.Difficulty}'."); }
+                var task = await codewarsService.GetRandomTaskAsync(request.Language, "Middle");
+                if (task == null) { return Results.NotFound($"Could not find a task for language: {request.Language}"); }
 
                 var correctCode = await aiService.GenerateCorrectSnippetAsync(task.Description, request.Language);
                 if (string.IsNullOrWhiteSpace(correctCode)) { return Results.Problem("AI failed to generate a correct code solution."); }
@@ -29,12 +31,12 @@ public static class AdminEndpoints
                     CorrectCode = correctCode,
                     BuggyCode = buggyCode,
                     Description = $"Challenge: {task.Name}",
-                    // FIX 2: Use the difficulty from the request
-                    Difficulty = request.Difficulty,
+                    Difficulty = "Middle",
                     Source = task.Source
                 };
-                db.CodeSnippets.Add(newSnippet);
-                await db.SaveChangesAsync();
+
+                // FIX: Save the new snippet to MongoDB, not PostgreSQL.
+                await mongoDb.CodeSnippets.InsertOneAsync(newSnippet);
 
                 return Results.Created($"/api/casino/snippets/{newSnippet.Id}", newSnippet);
             })

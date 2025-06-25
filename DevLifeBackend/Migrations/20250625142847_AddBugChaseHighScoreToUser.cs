@@ -5,13 +5,13 @@
 namespace DevLifeBackend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddWinStreakToUser : Migration
+    public partial class AddBugChaseHighScoreToUser : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
-                name: "WinStreak",
+                name: "BugChaseHighScore",
                 table: "Users",
                 type: "integer",
                 nullable: false,
@@ -22,7 +22,7 @@ namespace DevLifeBackend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "WinStreak",
+                name: "BugChaseHighScore",
                 table: "Users");
         }
     }

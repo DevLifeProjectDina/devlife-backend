@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DevLifeBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250623110737_AddCodeCasinoSchema")]
-    partial class AddCodeCasinoSchema
+    [Migration("20250625142847_AddBugChaseHighScoreToUser")]
+    partial class AddBugChaseHighScoreToUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,34 +25,6 @@ namespace DevLifeBackend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("DevLifeBackend.Models.CodeSnippet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuggyCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("CorrectCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CodeSnippets");
-                });
-
             modelBuilder.Entity("DevLifeBackend.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -60,6 +32,9 @@ namespace DevLifeBackend.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BugChaseHighScore")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("timestamp with time zone");
@@ -75,9 +50,9 @@ namespace DevLifeBackend.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Stack")
+                    b.PrimitiveCollection<string[]>("Stacks")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text[]");
 
                     b.Property<string>("Surname")
                         .IsRequired()
@@ -86,6 +61,9 @@ namespace DevLifeBackend.Migrations
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("WinStreak")
+                        .HasColumnType("integer");
 
                     b.Property<string>("ZodiacSign")
                         .HasColumnType("text");

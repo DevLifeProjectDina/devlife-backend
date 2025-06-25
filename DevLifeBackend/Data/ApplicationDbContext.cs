@@ -10,6 +10,5 @@ namespace DevLifeBackend.Data
 
         public DbSet<User> Users { get; set; }
 
-        public DbSet<CodeSnippet> CodeSnippets { get; set; }
     }
 }
