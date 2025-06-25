@@ -1,10 +1,14 @@
-﻿using DevLifeBackend.DTOs;
+﻿// File: Validators/UserRegistrationValidator.cs
+using DevLifeBackend.DTOs;
 using FluentValidation;
 
 namespace DevLifeBackend.Validators
 {
     public class UserRegistrationValidator : AbstractValidator<UserRegistrationDto>
     {
+        // A list of technologies our application supports
+        private readonly List<string> _allowedStacks = new() { ".NET", "React", "Angular", "Python" };
+
         public UserRegistrationValidator()
         {
             RuleFor(x => x.Username)
@@ -22,6 +26,12 @@ namespace DevLifeBackend.Validators
 
             RuleFor(x => x.Stacks)
                 .NotEmpty().WithMessage("At least one stack technology is required.");
+
+            RuleForEach(x => x.Stacks)
+                .NotEmpty().WithMessage("Stack technology cannot be an empty string.")
+                // THIS IS THE NEW RULE
+                .Must(stack => _allowedStacks.Contains(stack))
+                .WithMessage(x => $"Invalid stack detected. Allowed stacks are: {string.Join(", ", _allowedStacks)}");
 
             RuleFor(x => x.ExperienceLevel)
                 .NotEmpty().WithMessage("Experience level is required.")

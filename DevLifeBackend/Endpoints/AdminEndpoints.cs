@@ -9,8 +9,7 @@ public static class AdminEndpoints
 {
     public static WebApplication MapAdminEndpoints(this WebApplication app)
     {
-        var adminGroup = app.MapGroup("/api/admin");
-
+        var adminGroup = app.MapGroup("/api/admin").WithTags("Admin");
         adminGroup.MapPost("/casino/generate-snippet",
             async (GenerateSnippetRequestDto request, ICodewarsService codewarsService, IAiSnippetGeneratorService aiService, ApplicationDbContext db) =>
             {

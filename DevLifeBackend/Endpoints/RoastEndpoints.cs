@@ -10,14 +10,11 @@ public static class RoastEndpoints
 {
     public static WebApplication MapRoastEndpoints(this WebApplication app)
     {
-        var roastGroup = app.MapGroup("/api/roast");
+        var roastGroup = app.MapGroup("/api/roast").WithTags("Code Roast");
 
-        // FIX: Added [FromQuery] string difficulty and passed it to the service
         roastGroup.MapGet("/challenge", async ([FromQuery] string language, [FromQuery] string difficulty, HttpContext httpContext, ICodeRoastService roastService) => {
             var userIdString = httpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdString)) return Results.Unauthorized();
-
-            // No need to check user's profile, per our last change
 
             var challenge = await roastService.GetChallengeAsync(language, difficulty);
             if (challenge == null) { return Results.NotFound($"No roast challenges found for {language} at {difficulty} difficulty."); }

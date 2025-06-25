@@ -1,9 +1,9 @@
 ﻿// File: Program.cs
 using DevLifeBackend.Data;
-using DevLifeBackend.Endpoints; // <-- Главный using для наших эндпоинтов
+using DevLifeBackend.Endpoints;
 using DevLifeBackend.Services;
 using DevLifeBackend.Validators;
-using FluentValidation;
+using FluentValidation; // Make sure this using is present
 using Microsoft.EntityFrameworkCore;
 using OpenAI;
 
@@ -25,7 +25,11 @@ builder.Services.AddHttpClient("Judge0Client", client => {
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// This line registers all our validators (UserRegistrationValidator, etc.)
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// The new way to register the OpenAI client
 builder.Services.AddSingleton(new OpenAIClient(Environment.GetEnvironmentVariable("OPENAI_API_KEY")));
 
 // Register our custom services
@@ -66,7 +70,7 @@ if (app.Environment.IsDevelopment())
 app.UseSession();
 
 // --- API Endpoints Registration ---
-
+app.MapGet("/", () => "DevLife API is running!");
 app.MapAuthEndpoints();
 app.MapDashboardEndpoints();
 app.MapCasinoEndpoints();

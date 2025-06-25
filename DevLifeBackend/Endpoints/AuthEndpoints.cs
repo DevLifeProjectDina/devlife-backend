@@ -1,7 +1,9 @@
-﻿using DevLifeBackend.Data;
+﻿// File: Endpoints/AuthEndpoints.cs
+using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
+using FluentValidation; // <-- Добавьте этот using
 using Microsoft.EntityFrameworkCore;
 
 namespace DevLifeBackend.Endpoints;
@@ -10,25 +12,41 @@ public static class AuthEndpoints
 {
     public static WebApplication MapAuthEndpoints(this WebApplication app)
     {
-        app.MapPost("/register", async (UserRegistrationDto userDto, ApplicationDbContext db, IZodiacService zodiacService) => {
-            if (await db.Users.AnyAsync(u => u.Username == userDto.Username)) { return Results.Conflict("User with this username already exists."); }
+        var authGroup = app.MapGroup("/auth").WithTags("Authentication");
 
-            var user = new User
+        // Мы меняем этот эндпоинт, чтобы он вручную вызывал валидацию
+        authGroup.MapPost("/register",
+            async (UserRegistrationDto userDto, IValidator<UserRegistrationDto> validator, ApplicationDbContext db, IZodiacService zodiacService) =>
             {
-                Username = userDto.Username,
-                Name = userDto.Name,
-                Surname = userDto.Surname,
-                DateOfBirth = userDto.DateOfBirth,
-                Stacks = userDto.Stacks,
-                ExperienceLevel = userDto.ExperienceLevel,
-                ZodiacSign = zodiacService.GetZodiacSign(userDto.DateOfBirth)
-            };
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-            return Results.Created($"/users/{user.Username}", user);
-        });
 
-        app.MapPost("/login", async (LoginDto loginDto, HttpContext httpContext, ApplicationDbContext db) => {
+                // --- ЯВНАЯ ВАЛИДАЦИЯ ---
+                var validationResult = await validator.ValidateAsync(userDto);
+                if (!validationResult.IsValid)
+                {
+                    // Возвращаем ошибку 400 со списком всех проблем валидации
+                    return Results.ValidationProblem(validationResult.ToDictionary());
+                }
+                // -------------------------
+
+                if (await db.Users.AnyAsync(u => u.Username == userDto.Username)) { return Results.Conflict("User with this username already exists."); }
+
+                var user = new User
+                {
+                    Username = userDto.Username,
+                    Name = userDto.Name,
+                    Surname = userDto.Surname,
+                    DateOfBirth = userDto.DateOfBirth,
+                    Stacks = userDto.Stacks,
+                    ExperienceLevel = userDto.ExperienceLevel,
+                    ZodiacSign = zodiacService.GetZodiacSign(userDto.DateOfBirth)
+                };
+                db.Users.Add(user);
+                await db.SaveChangesAsync();
+                return Results.Created($"/users/{user.Username}", user);
+            });
+
+        // Эндпоинт /login остается без изменений
+        authGroup.MapPost("/login", async (LoginDto loginDto, HttpContext httpContext, ApplicationDbContext db) => {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == loginDto.Username);
             if (user == null) return Results.NotFound("User not found.");
             httpContext.Session.SetString("UserId", user.Id.ToString());

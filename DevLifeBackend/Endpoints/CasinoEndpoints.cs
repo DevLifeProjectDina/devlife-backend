@@ -11,7 +11,7 @@ public static class CasinoEndpoints
 {
     public static WebApplication MapCasinoEndpoints(this WebApplication app)
     {
-        var casinoGroup = app.MapGroup("/api/casino");
+        var casinoGroup = app.MapGroup("/api/casino").WithTags("Casino");
 
         casinoGroup.MapGet("/challenge", async ([FromQuery] string language, [FromQuery] string difficulty, HttpContext httpContext, ICasinoService casinoService, ApplicationDbContext db) => {
             var userIdString = httpContext.Session.GetString("UserId");
@@ -34,7 +34,9 @@ public static class CasinoEndpoints
             var correctAnswer = httpContext.Session.GetString(correctAnswerKey);
             if (string.IsNullOrEmpty(correctAnswer)) { return Results.BadRequest("Challenge session expired or invalid. Please get a new challenge."); }
             httpContext.Session.Remove(correctAnswerKey);
+
             var result = await casinoService.ProcessBetAsync(int.Parse(userIdString), betDto, correctAnswer);
+
             if (result.Message == "User not found.") return Results.NotFound(result);
             if (result.Message == "Invalid bet amount.") return Results.BadRequest(result);
             return Results.Ok(result);
@@ -49,6 +51,25 @@ public static class CasinoEndpoints
         })
         .WithName("GetLeaderboard")
         .Produces<IEnumerable<LeaderboardEntryDto>>();
+
+        casinoGroup.MapGet("/daily-challenge", async (HttpContext httpContext, ICasinoService casinoService, ApplicationDbContext db) =>
+        {
+            var userIdString = httpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdString)) return Results.Unauthorized();
+
+            var user = await db.Users.FindAsync(int.Parse(userIdString));
+            if (user == null) return Results.NotFound("User not found.");
+
+            var challenge = await casinoService.GetDailyChallengeAsync(user.Stacks, httpContext.Session);
+
+            if (challenge == null)
+            {
+                return Results.NotFound("No suitable daily challenge found for your registered stacks.");
+            }
+            return Results.Ok(challenge);
+        })
+        .WithName("GetDailyChallenge")
+        .Produces<CasinoChallengeDto>();
 
         return app;
     }
