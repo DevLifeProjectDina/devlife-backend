@@ -1,10 +1,8 @@
 ﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver; // <-- Важный using
-using DevLifeBackend.DTOs;
 
 namespace DevLifeBackend.Services
 {

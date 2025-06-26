@@ -25,7 +25,7 @@ builder.Services.AddSession(options => {
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("HoroscopeClient", client => { client.Timeout = TimeSpan.FromSeconds(3); });
 builder.Services.AddHttpClient("CodewarsClient", client => { client.DefaultRequestHeaders.Add("User-Agent", "DevLifePortal/1.0"); });
 builder.Services.AddHttpClient("Judge0Client", client => {
@@ -55,6 +55,8 @@ builder.Services.AddScoped<IAiSnippetGeneratorService, AiSnippetGeneratorService
 builder.Services.AddScoped<IDailyFeatureService, DailyFeatureService>();
 builder.Services.AddScoped<IDailyFeatureService, DailyFeatureService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IGitHubAnalyzerService, GitHubAnalyzerService>();
+builder.Services.AddScoped<IImageService, ImageService>();
 
 
 var app = builder.Build();
@@ -104,5 +106,6 @@ app.MapAdminEndpoints();
 app.MapHub<DevLifeBackend.Hubs.BugChaseHub>("/hubs/bugchase");
 app.MapBugChaseEndpoints();
 app.MapProfileEndpoints();
+app.MapGitHubEndpoints();
 
 app.Run();

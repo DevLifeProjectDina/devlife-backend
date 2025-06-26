@@ -6,7 +6,7 @@ namespace DevLifeBackend.Validators
 {
     public class UserRegistrationValidator : AbstractValidator<UserRegistrationDto>
     {
-        // A list of technologies our application supports
+        // "Unknown" is REMOVED from the list of allowed stacks for manual registration
         private readonly List<string> _allowedStacks = new() { ".NET", "React", "Angular", "Python" };
 
         public UserRegistrationValidator()
@@ -14,27 +14,30 @@ namespace DevLifeBackend.Validators
             RuleFor(x => x.Username)
                 .NotEmpty().WithMessage("Username is required.")
                 .MinimumLength(3).WithMessage("Username must be at least 3 characters long.")
-                .MaximumLength(20).WithMessage("Username cannot be longer than 20 characters.");
+                .MaximumLength(20).WithMessage("Username cannot be longer than 20 characters.")
+                .Matches("[a-zA-Z]").WithMessage("Username must contain at least one letter.");
 
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
-                .MaximumLength(50);
+                .MaximumLength(50)
+                .Matches(@"^[\p{L}]+$").WithMessage("Name can only contain letters.");
 
             RuleFor(x => x.Surname)
                 .NotEmpty().WithMessage("Surname is required.")
-                .MaximumLength(50);
+                .MaximumLength(50)
+                .Matches(@"^[\p{L}]+$").WithMessage("Surname can only contain letters.");
 
             RuleFor(x => x.Stacks)
                 .NotEmpty().WithMessage("At least one stack technology is required.");
 
             RuleForEach(x => x.Stacks)
                 .NotEmpty().WithMessage("Stack technology cannot be an empty string.")
-                // THIS IS THE NEW RULE
                 .Must(stack => _allowedStacks.Contains(stack))
                 .WithMessage(x => $"Invalid stack detected. Allowed stacks are: {string.Join(", ", _allowedStacks)}");
 
             RuleFor(x => x.ExperienceLevel)
                 .NotEmpty().WithMessage("Experience level is required.")
+                // "Unknown" is REMOVED from the list of allowed levels for manual registration
                 .Must(level => new[] { "Junior", "Middle", "Senior" }.Contains(level))
                 .WithMessage("Please enter a valid level: Junior, Middle, or Senior.");
 

@@ -30,13 +30,52 @@ namespace DevLifeBackend.Services
             return customization ?? new CharacterCustomization { UserId = userId };
         }
 
+        //public async Task SaveCustomizationAsync(int userId, CharacterCustomization newCustomization)
+        //{
+        //    var filter = Builders<CharacterCustomization>.Filter.Eq(c => c.UserId, userId);
+
+        //    // This will update the existing document or insert a new one if it doesn't exist
+        //    await _mongoContext.CharacterCustomizations
+        //        .ReplaceOneAsync(filter, newCustomization, new ReplaceOptions { IsUpsert = true });
+        //}
         public async Task SaveCustomizationAsync(int userId, CharacterCustomization newCustomization)
         {
-            var filter = Builders<CharacterCustomization>.Filter.Eq(c => c.UserId, userId);
+            // 1. Убедитесь, что UserId в объекте newCustomization совпадает с переданным userId.
+            // Это важно, так как newCustomization приходит извне (например, из HTTP-запроса),
+            // и его UserId может быть некорректным или отсутствовать.
+            newCustomization.UserId = userId;
 
-            // This will update the existing document or insert a new one if it doesn't exist
-            await _mongoContext.CharacterCustomizations
-                .ReplaceOneAsync(filter, newCustomization, new ReplaceOptions { IsUpsert = true });
+            // 2. Попробуйте найти существующую кастомизацию по UserId.
+            // Это более явный подход, чем полагаться только на upsert с _id: null.
+            var existingCustomization = await _mongoContext.CharacterCustomizations
+                .Find(c => c.UserId == userId)
+                .FirstOrDefaultAsync();
+
+            if (existingCustomization != null)
+            {
+                // Если кастомизация для этого пользователя уже существует:
+                // Обновим её поля из newCustomization.
+                // Важно: Id существующей кастомизации сохраняется!
+                newCustomization.Id = existingCustomization.Id; // Переносим _id от существующего документа
+
+                // Теперь newCustomization содержит правильный Id существующего документа.
+                // Выполняем замену:
+                // Фильтр должен быть по _id, чтобы гарантировать, что обновляем правильный документ.
+                var result = await _mongoContext.CharacterCustomizations
+                    .ReplaceOneAsync(
+                        c => c.Id == existingCustomization.Id, // Фильтр по уникальному _id
+                        newCustomization); // newCustomization теперь содержит правильный _id
+            }
+            else
+            {
+                // Если кастомизация для этого пользователя НЕ существует:
+                // Это новая запись. Убедимся, что Id в newCustomization равен null,
+                // чтобы MongoDB Driver сгенерировал новый ObjectId при вставке.
+                newCustomization.Id = null; // Убеждаемся, что Id для новой записи null
+
+                // Вставляем новый документ. InsertOneAsync более прямолинеен для новых записей.
+                await _mongoContext.CharacterCustomizations.InsertOneAsync(newCustomization);
+            }
         }
     }
 }

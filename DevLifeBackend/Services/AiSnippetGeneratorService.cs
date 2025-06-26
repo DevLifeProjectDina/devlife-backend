@@ -29,10 +29,9 @@ namespace DevLifeBackend.Services
 
             try
             {
-                var chatRequest = new ChatRequest(new[] { new Message(Role.System, prompt) });
+                // FIX: Pass the model name as a string
+                var chatRequest = new ChatRequest(new[] { new Message(Role.System, prompt) }, "gpt-3.5-turbo");
                 var response = await _openAIClient.ChatEndpoint.GetCompletionAsync(chatRequest);
-
-                // FIX IS HERE: Using ToString() to get the message content
                 return response.FirstChoice.Message.ToString();
             }
             catch (Exception ex)
@@ -51,10 +50,9 @@ namespace DevLifeBackend.Services
 
             try
             {
-                var chatRequest = new ChatRequest(new[] { new Message(Role.User, prompt) });
+                // FIX: Pass the model name as a string
+                var chatRequest = new ChatRequest(new[] { new Message(Role.User, prompt) }, "gpt-3.5-turbo");
                 var response = await _openAIClient.ChatEndpoint.GetCompletionAsync(chatRequest);
-
-                // FIX IS HERE: Using ToString() to get the message content
                 return response.FirstChoice.Message.ToString();
             }
             catch (Exception ex)
