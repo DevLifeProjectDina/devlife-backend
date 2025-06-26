@@ -39,10 +39,10 @@ namespace DevLifeBackend.Services
 
         public async Task<byte[]?> GenerateAnalysisCardAsync(string personalityType)
         {
-            var prompt = $"A funny, comical cartoon character of a software developer representing the personality '{personalityType}'. " +
-             "Use a slightly exaggerated, caricature style, with expressive eyes. " +
-             "The character could be holding a comically oversized coffee mug or interacting with a tiny, confused-looking bug. " +
-             "Simple, colorful background.";
+            var prompt = $"A funny, expressive cartoon character of a caucasian software developer, representing the personality '{personalityType}'. " +
+             "Tim Burton animations style, similar to Pixar or Dreamworks. " +
+             "The character should be quirky and fun, with exaggerated features, maybe interacting with a laptop or a coffee mug. " +
+             "Simple, vibrant background.";
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("OpenAI_Direct");
