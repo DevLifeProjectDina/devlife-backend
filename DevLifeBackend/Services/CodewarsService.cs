@@ -1,6 +1,6 @@
-﻿// File: Services/CodewarsService.cs
-using DevLifeBackend.DTOs;
+﻿using DevLifeBackend.DTOs;
 using System.Text.Json;
+using Serilog;
 
 namespace DevLifeBackend.Services
 {
@@ -21,9 +21,9 @@ namespace DevLifeBackend.Services
     public class CodewarsService : ICodewarsService
     {
         private readonly IHttpClientFactory _clientFactory;
-        private static readonly Random _random = new Random();
+        private readonly ILogger<CodewarsService> _logger;
+        private static readonly Random _random = new();
 
-        // ADDED "React" to the fallback list
         private readonly List<CodewarsTask> _fallbackTasks = new()
         {
             new CodewarsTask { Language = ".NET", Name = "Fallback: Sum of positive", Description = "You get an array of numbers, return the sum of all of the positives ones.", Source = "Fallback (Hardcoded)", Difficulty = "Junior" },
@@ -34,7 +34,6 @@ namespace DevLifeBackend.Services
             new CodewarsTask { Language = "React", Name = "Fallback: Convert a Number to a String", Description = "We need a function that can transform a number (integer) into a string.", Source = "Fallback (Hardcoded)", Difficulty = "Junior" }
         };
 
-        // ADDED a full section for "React"
         private readonly Dictionary<string, Dictionary<string, List<string>>> _challengeSlugs = new()
         {
             { ".NET", new Dictionary<string, List<string>> {
@@ -59,9 +58,10 @@ namespace DevLifeBackend.Services
             }}
         };
 
-        public CodewarsService(IHttpClientFactory clientFactory)
+        public CodewarsService(IHttpClientFactory clientFactory, ILogger<CodewarsService> logger)
         {
             _clientFactory = clientFactory;
+            _logger = logger;
         }
 
         public async Task<CodewarsTask?> GetRandomTaskAsync(string language, string difficulty)
@@ -70,23 +70,35 @@ namespace DevLifeBackend.Services
             {
                 if (!_challengeSlugs.ContainsKey(language) || !_challengeSlugs[language].ContainsKey(difficulty))
                 {
+                    _logger.LogWarning("No slugs defined for Language {Language} and Difficulty {Difficulty}. Using fallback.", language, difficulty);
                     return GetFallbackTask(language, difficulty);
                 }
 
                 var slugs = _challengeSlugs[language][difficulty];
-                if (!slugs.Any()) return GetFallbackTask(language, difficulty);
+                if (!slugs.Any())
+                {
+                    _logger.LogWarning("Slug list is empty for Language {Language} and Difficulty {Difficulty}. Using fallback.", language, difficulty);
+                    return GetFallbackTask(language, difficulty);
+                }
 
                 var randomSlug = slugs[_random.Next(slugs.Count)];
+                _logger.LogInformation("Attempting to fetch challenge '{Slug}' from Codewars API.", randomSlug);
+
                 var client = _clientFactory.CreateClient("CodewarsClient");
                 var response = await client.GetAsync($"https://www.codewars.com/api/v1/code-challenges/{randomSlug}");
 
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Codewars API returned non-success status: {StatusCode} for slug '{Slug}'. Using fallback.", response.StatusCode, randomSlug);
+                    return GetFallbackTask(language, difficulty);
+                }
 
                 var jsonString = await response.Content.ReadAsStringAsync();
                 var challengeDto = JsonSerializer.Deserialize<CodewarsChallengeDto>(jsonString);
 
                 if (challengeDto != null)
                 {
+                    _logger.LogInformation("Successfully fetched and deserialized challenge '{Slug}' from Codewars API.", randomSlug);
                     return new CodewarsTask
                     {
                         Name = challengeDto.Name,
@@ -99,17 +111,23 @@ namespace DevLifeBackend.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching from Codewars API: {ex.Message}. Using fallback.");
+                _logger.LogError(ex, "Exception occurred while fetching from Codewars API. Using fallback.");
                 return GetFallbackTask(language, difficulty);
             }
 
+            _logger.LogWarning("Failed to process Codewars API response. Using fallback.");
             return GetFallbackTask(language, difficulty);
         }
 
         private CodewarsTask? GetFallbackTask(string language, string difficulty)
         {
+            _logger.LogInformation("Attempting to find a fallback task for Language {Language} and Difficulty {Difficulty}", language, difficulty);
             var suitableTasks = _fallbackTasks.Where(c => c.Language == language && c.Difficulty == difficulty).ToList();
-            if (!suitableTasks.Any()) return null;
+            if (!suitableTasks.Any())
+            {
+                _logger.LogError("No fallback task found for Language {Language} and Difficulty {Difficulty}", language, difficulty);
+                return null;
+            }
 
             return suitableTasks[_random.Next(suitableTasks.Count)];
         }

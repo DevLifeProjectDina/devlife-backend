@@ -1,4 +1,4 @@
-﻿// File: DTOs/DashboardDto.cs
+﻿
 namespace DevLifeBackend.DTOs
 {
     public record DashboardDto
@@ -7,6 +7,6 @@ namespace DevLifeBackend.DTOs
         public string DailyHoroscope { get; init; } = default!;
         public string LuckyTechnology { get; init; } = default!;
         public string DailyBonusInfo { get; init; } = default!;
-        public int WinStreak { get; init; } // <-- ADDED THIS
+        public int WinStreak { get; init; } 
     }
 }

@@ -1,7 +1,7 @@
-﻿// File: Services/Judge0Service.cs
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using DevLifeBackend.DTOs;
+using Serilog;
 
 namespace DevLifeBackend.Services
 {
@@ -13,8 +13,8 @@ namespace DevLifeBackend.Services
     public class Judge0Service : IJudge0Service
     {
         private readonly IHttpClientFactory _clientFactory;
+        private readonly ILogger<Judge0Service> _logger;
 
-        // Mapping our app's language names to Judge0's internal language IDs
         private readonly Dictionary<string, int> _languageIds = new()
         {
             { ".NET", 51 },     // C#
@@ -23,16 +23,17 @@ namespace DevLifeBackend.Services
             { "Angular", 93 }   // JavaScript
         };
 
-        public Judge0Service(IHttpClientFactory clientFactory)
+        public Judge0Service(IHttpClientFactory clientFactory, ILogger<Judge0Service> logger)
         {
             _clientFactory = clientFactory;
+            _logger = logger;
         }
 
         public async Task<Judge0SubmissionResultDto?> SubmitCodeAsync(string language, string sourceCode)
         {
             if (!_languageIds.TryGetValue(language, out var languageId))
             {
-                // Language not supported by our Judge0 setup
+                _logger.LogError("Attempted to submit code for an unsupported language: {Language}", language);
                 return null;
             }
 
@@ -49,16 +50,24 @@ namespace DevLifeBackend.Services
 
             try
             {
-                // We use the synchronous endpoint by adding "?wait=true"
+                _logger.LogInformation("Submitting code to Judge0 for language ID {LanguageId}", languageId);
                 var response = await client.PostAsync("submissions?wait=true", requestContent);
-                response.EnsureSuccessStatusCode();
 
-                var responseJson = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<Judge0SubmissionResultDto>(responseJson);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Judge0 API returned a non-success status code {StatusCode}. Response: {ResponseContent}", response.StatusCode, responseContent);
+                    // Try to deserialize even on failure to get a more structured error message
+                    return JsonSerializer.Deserialize<Judge0SubmissionResultDto>(responseContent);
+                }
+
+                _logger.LogInformation("Successfully received execution result from Judge0.");
+                return JsonSerializer.Deserialize<Judge0SubmissionResultDto>(responseContent);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error submitting code to Judge0: {ex.Message}");
+                _logger.LogError(ex, "An unhandled exception occurred while submitting code to Judge0.");
                 return null;
             }
         }

@@ -1,9 +1,8 @@
-﻿// File: DTOs/GitHubDtos.cs
+﻿
 using System.Text.Json.Serialization;
 
 namespace DevLifeBackend.DTOs
 {
-    // For exchanging the code for an access token
     public class GitHubAccessTokenRequestDto
     {
         [JsonPropertyName("client_id")]
@@ -22,7 +21,6 @@ namespace DevLifeBackend.DTOs
         public string AccessToken { get; set; } = default!;
     }
 
-    // For getting user info from GitHub API
     public class GitHubUserDto
     {
         [JsonPropertyName("login")]

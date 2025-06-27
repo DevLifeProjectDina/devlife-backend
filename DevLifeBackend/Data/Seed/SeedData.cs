@@ -5,7 +5,6 @@ namespace DevLifeBackend.Data.Seed
 {
     public static class SeedData
     {
-        // The method now accepts MongoDbContext
         public static void Initialize(MongoDbContext context)
         {
             if (context.CodeSnippets.Find(_ => true).Any())
@@ -17,11 +16,11 @@ namespace DevLifeBackend.Data.Seed
             {
                 new CodeSnippet
             {
-                Language = "Unknown", // For new users from GitHub
+                Language = "Unknown",
                 Difficulty = "Junior",
                 Description = "This console log should print the number 5.",
                 CorrectCode = "Console.WriteLine(5);",
-                BuggyCode = "Console.WriteLine(\"5\");", // A subtle bug: prints string "5" not number 5
+                BuggyCode = "Console.WriteLine(\"5\");",
                 Source = "Static (Hardcoded)"
             },
                 new CodeSnippet { Language = ".NET", Difficulty = "Junior", Description = "This LINQ query should return only even numbers.", CorrectCode = "var evenNumbers = numbers.Where(n => n % 2 == 0);", BuggyCode = "var evenNumbers = numbers.Where(n => n % 2 = 0);", Source = "Static (Hardcoded)" },
@@ -34,6 +33,17 @@ namespace DevLifeBackend.Data.Seed
             };
 
             context.CodeSnippets.InsertMany(snippets);
+
+            if (!context.DatingProfiles.Find(_ => true).Any())
+            {
+                var profiles = new DatingProfile[]
+                {
+            new DatingProfile { Name = "Anna", Age = 28, Stacks = new[] { ".NET", "Azure" }, Bio = "I like clean architecture and long walks on the beach... to think about clean architecture.", CharacterPrompt = "You are Anna, a sharp and witty .NET developer. You are confident and a bit sarcastic." },
+            new DatingProfile { Name = "Leo", Age = 25, Stacks = new[] { "React", "Node.js" }, Bio = "My life is like a hook, it only re-renders when the state changes. Looking for my dependency.", CharacterPrompt = "You are Leo, a cool and creative React developer. You are very passionate about UI/UX and modern design." },
+            new DatingProfile { Name = "Eva", Age = 31, Stacks = new[] { "Python", "Data Science" }, Bio = "My love for you is like a Jupyter Notebook: messy, but full of beautiful results. Let's analyze our compatibility.", CharacterPrompt = "You are Eva, a smart and thoughtful Python data scientist. You are very analytical and use data-related metaphors." }
+                };
+                context.DatingProfiles.InsertMany(profiles);
+            }
         }
     }
 }

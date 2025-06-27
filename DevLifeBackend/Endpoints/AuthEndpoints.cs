@@ -1,10 +1,10 @@
-﻿// File: Endpoints/AuthEndpoints.cs
-using DevLifeBackend.Data;
+﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
-using FluentValidation; // <-- Добавьте этот using
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -14,21 +14,21 @@ public static class AuthEndpoints
     {
         var authGroup = app.MapGroup("/auth").WithTags("Authentication");
 
-        // Мы меняем этот эндпоинт, чтобы он вручную вызывал валидацию
         authGroup.MapPost("/register",
             async (UserRegistrationDto userDto, IValidator<UserRegistrationDto> validator, ApplicationDbContext db, IZodiacService zodiacService) =>
             {
-
-                // --- ЯВНАЯ ВАЛИДАЦИЯ ---
                 var validationResult = await validator.ValidateAsync(userDto);
                 if (!validationResult.IsValid)
                 {
-                    // Возвращаем ошибку 400 со списком всех проблем валидации
+                    Log.Warning("User registration failed validation for username {Username}. Errors: {@Errors}", userDto.Username, validationResult.ToDictionary());
                     return Results.ValidationProblem(validationResult.ToDictionary());
                 }
-                // -------------------------
 
-                if (await db.Users.AnyAsync(u => u.Username == userDto.Username)) { return Results.Conflict("User with this username already exists."); }
+                if (await db.Users.AnyAsync(u => u.Username == userDto.Username))
+                {
+                    Log.Warning("User registration failed: username {Username} already exists.", userDto.Username);
+                    return Results.Conflict("User with this username already exists.");
+                }
 
                 var user = new User
                 {
@@ -40,16 +40,28 @@ public static class AuthEndpoints
                     ExperienceLevel = userDto.ExperienceLevel,
                     ZodiacSign = zodiacService.GetZodiacSign(userDto.DateOfBirth)
                 };
+
                 db.Users.Add(user);
                 await db.SaveChangesAsync();
+
+                Log.Information("New user registered successfully: {Username}, UserID: {UserId}", user.Username, user.Id);
+
                 return Results.Created($"/users/{user.Username}", user);
             });
 
-        // Эндпоинт /login остается без изменений
-        authGroup.MapPost("/login", async (LoginDto loginDto, HttpContext httpContext, ApplicationDbContext db) => {
+        authGroup.MapPost("/login", async (LoginDto loginDto, HttpContext httpContext, ApplicationDbContext db) =>
+        {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == loginDto.Username);
-            if (user == null) return Results.NotFound("User not found.");
+            if (user == null)
+            {
+                Log.Warning("Login failed: user with username {Username} not found.", loginDto.Username);
+                return Results.NotFound("User not found.");
+            }
+
             httpContext.Session.SetString("UserId", user.Id.ToString());
+
+            Log.Information("User {Username} (ID: {UserId}) logged in successfully.", user.Username, user.Id);
+
             return Results.Ok($"Welcome back, {user.Name}!");
         });
 

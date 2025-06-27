@@ -1,8 +1,8 @@
-﻿// File: Endpoints/DashboardEndpoints.cs
-using DevLifeBackend.Data;
+﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Services;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -12,11 +12,21 @@ public static class DashboardEndpoints
     {
         app.MapGet("/dashboard", async (HttpContext httpContext, ApplicationDbContext db, IHoroscopeService horoscopeService, IDailyFeatureService dailyFeatureService) => {
             var userIdString = httpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userIdString)) return Results.Unauthorized();
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                Log.Warning("Unauthorized request to dashboard.");
+                return Results.Unauthorized();
+            }
 
             var userId = int.Parse(userIdString);
             var user = await db.Users.FindAsync(userId);
-            if (user == null) return Results.NotFound("User associated with this session not found.");
+            if (user == null)
+            {
+                Log.Warning("Dashboard request failed: User with ID {UserId} not found.", userId);
+                return Results.NotFound("User associated with this session not found.");
+            }
+
+            Log.Information("Fetching dashboard data for user {Username}", user.Username);
 
             var horoscopeText = await horoscopeService.GetHoroscopeAsync(user.ZodiacSign);
             var luckyTech = GetLuckyTechnology();
@@ -25,14 +35,13 @@ public static class DashboardEndpoints
             var dailyBonusMessage = $"Today's lucky sign is {luckySign}! ✨ They get a 1.5x bonus in the Code Casino.";
             var welcomeMessage = $"Hello {user.Name}! As a {user.ZodiacSign}, here is your personalized advice for today:";
 
-            // Create the response DTO with the new WinStreak field
             var response = new DashboardDto
             {
                 WelcomeMessage = welcomeMessage,
                 DailyHoroscope = horoscopeText,
                 LuckyTechnology = luckyTech,
                 DailyBonusInfo = dailyBonusMessage,
-                WinStreak = user.WinStreak // <-- ADDED THIS
+                WinStreak = user.WinStreak
             };
             return Results.Ok(response);
         })

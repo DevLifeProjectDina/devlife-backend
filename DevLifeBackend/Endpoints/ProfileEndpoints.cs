@@ -1,7 +1,7 @@
-﻿// File: Endpoints/ProfileEndpoints.cs
-using DevLifeBackend.DTOs;
+﻿using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
+using Serilog;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -14,8 +14,13 @@ public static class ProfileEndpoints
         profileGroup.MapGet("/customization", async (HttpContext httpContext, IProfileService profileService) =>
         {
             var userIdString = httpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userIdString)) return Results.Unauthorized();
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                Log.Warning("Unauthorized request for profile customization.");
+                return Results.Unauthorized();
+            }
 
+            Log.Information("Fetching customization for User {UserId}", userIdString);
             var customization = await profileService.GetCustomizationAsync(int.Parse(userIdString));
             return Results.Ok(customization);
         });
@@ -23,11 +28,14 @@ public static class ProfileEndpoints
         profileGroup.MapPut("/customization", async (CharacterCustomizationDto dto, HttpContext httpContext, IProfileService profileService) =>
         {
             var userIdString = httpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userIdString)) return Results.Unauthorized();
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                Log.Warning("Unauthorized attempt to update profile customization.");
+                return Results.Unauthorized();
+            }
 
             var userId = int.Parse(userIdString);
 
-            // Map DTO to Model
             var customizationModel = new CharacterCustomization
             {
                 UserId = userId,
@@ -37,6 +45,9 @@ public static class ProfileEndpoints
             };
 
             await profileService.SaveCustomizationAsync(userId, customizationModel);
+
+            Log.Information("User {UserId} updated their character customization: Hat -> {Hat}, ShirtColor -> {ShirtColor}, Pet -> {Pet}", userId, dto.Hat, dto.ShirtColor, dto.Pet);
+
             return Results.Ok(customizationModel);
         });
 

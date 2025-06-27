@@ -1,6 +1,6 @@
-﻿// File: Services/AiSnippetGeneratorService.cs
-using OpenAI;
+﻿using OpenAI;
 using OpenAI.Chat;
+using Serilog;
 
 namespace DevLifeBackend.Services
 {
@@ -13,10 +13,12 @@ namespace DevLifeBackend.Services
     public class AiSnippetGeneratorService : IAiSnippetGeneratorService
     {
         private readonly OpenAIClient _openAIClient;
+        private readonly ILogger<AiSnippetGeneratorService> _logger;
 
-        public AiSnippetGeneratorService(OpenAIClient openAIClient)
+        public AiSnippetGeneratorService(OpenAIClient openAIClient, ILogger<AiSnippetGeneratorService> logger)
         {
             _openAIClient = openAIClient;
+            _logger = logger;
         }
 
         public async Task<string?> GenerateBuggySnippetAsync(string correctCode, string language)
@@ -27,16 +29,28 @@ namespace DevLifeBackend.Services
                 "Return ONLY the complete, buggy code block. Do not add any explanation or surrounding text. " +
                 $"Here is the correct code:\n\n{correctCode}";
 
+            _logger.LogInformation("Requesting buggy code generation from OpenAI for language: {Language}", language);
+
             try
             {
-                // FIX: Pass the model name as a string
                 var chatRequest = new ChatRequest(new[] { new Message(Role.System, prompt) }, "gpt-3.5-turbo");
                 var response = await _openAIClient.ChatEndpoint.GetCompletionAsync(chatRequest);
-                return response.FirstChoice.Message.ToString();
+                var buggyCode = response.FirstChoice.Message.ToString();
+
+                if (!string.IsNullOrWhiteSpace(buggyCode))
+                {
+                    _logger.LogInformation("Successfully generated buggy code snippet.");
+                }
+                else
+                {
+                    _logger.LogWarning("OpenAI returned a successful but empty response for buggy code generation.");
+                }
+
+                return buggyCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception during OpenAI buggy code generation: {ex.Message}");
+                _logger.LogError(ex, "Exception during OpenAI buggy code generation.");
                 return null;
             }
         }
@@ -48,16 +62,28 @@ namespace DevLifeBackend.Services
                 "Return ONLY the raw code block, without any explanation, comments, or markdown fences like ```. " +
                 $"Description: \"{description}\"";
 
+            _logger.LogInformation("Requesting correct code solution from OpenAI for language: {Language}", language);
+
             try
             {
-                // FIX: Pass the model name as a string
                 var chatRequest = new ChatRequest(new[] { new Message(Role.User, prompt) }, "gpt-3.5-turbo");
                 var response = await _openAIClient.ChatEndpoint.GetCompletionAsync(chatRequest);
-                return response.FirstChoice.Message.ToString();
+                var correctCode = response.FirstChoice.Message.ToString();
+
+                if (!string.IsNullOrWhiteSpace(correctCode))
+                {
+                    _logger.LogInformation("Successfully generated correct code solution.");
+                }
+                else
+                {
+                    _logger.LogWarning("OpenAI returned a successful but empty response for correct code generation.");
+                }
+
+                return correctCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception during OpenAI correct code generation: {ex.Message}");
+                _logger.LogError(ex, "Exception during OpenAI correct code generation.");
                 return null;
             }
         }

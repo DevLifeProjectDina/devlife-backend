@@ -1,10 +1,10 @@
-﻿// File: Endpoints/BugChaseEndpoints.cs
-using DevLifeBackend.Data;
+﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
-using DevLifeBackend.Hubs; // <-- Добавляем using для хаба
+using DevLifeBackend.Hubs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR; // <-- Добавляем using для SignalR
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -14,9 +14,9 @@ public static class BugChaseEndpoints
     {
         var bugChaseGroup = app.MapGroup("/api/bug-chase").WithTags("Bug Chase Game");
 
-        // Этот эндпоинт у нас уже был
         bugChaseGroup.MapGet("/leaderboard", async (ApplicationDbContext db) =>
         {
+            Log.Information("Fetching Bug Chase leaderboard");
             var leaderboard = await db.Users
                 .OrderByDescending(u => u.BugChaseHighScore)
                 .Take(10)
@@ -33,41 +33,39 @@ public static class BugChaseEndpoints
         .WithName("GetBugChaseLeaderboard")
         .Produces<IEnumerable<BugChaseLeaderboardEntryDto>>();
 
-        // --- ADD THIS NEW ENDPOINT ---
-        // Этот эндпоинт будет имитировать завершение игры и отправку счета
         bugChaseGroup.MapPost("/submit-score", async (
             [FromBody] SubmitScoreDto request,
             HttpContext httpContext,
-            ApplicationDbContext db,
-            IHubContext<BugChaseHub> hubContext) =>
+            ApplicationDbContext db) =>
         {
             var userIdString = httpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdString))
             {
+                Log.Warning("Unauthorized attempt to submit Bug Chase score.");
                 return Results.Unauthorized();
             }
 
-            var user = await db.Users.FindAsync(int.Parse(userIdString));
+            var userId = int.Parse(userIdString);
+            var user = await db.Users.FindAsync(userId);
             if (user == null)
             {
+                Log.Warning("Bug Chase score submission failed: User with ID {UserId} not found.", userId);
                 return Results.NotFound("User not found.");
             }
 
             string message;
-            // Проверяем, является ли новый счет рекордом
             if (request.Score > user.BugChaseHighScore)
             {
+                Log.Information("User {Username} set a new Bug Chase high score: {NewScore} (previous: {OldScore})", user.Username, request.Score, user.BugChaseHighScore);
                 user.BugChaseHighScore = request.Score;
                 await db.SaveChangesAsync();
                 message = $"Congratulations! You've set a new high score: {request.Score}";
             }
             else
             {
+                Log.Information("User {Username} submitted a score of {Score}, which is not a new high score.", user.Username, request.Score);
                 message = $"Good game! Your score was {request.Score}. Your high score remains {user.BugChaseHighScore}.";
             }
-
-            // Здесь мы могли бы также вызвать логику достижений, если бы она была в сервисе.
-            // Например, отправить уведомление через SignalR.
 
             return Results.Ok(new { Message = message, NewHighScore = user.BugChaseHighScore });
         })

@@ -1,4 +1,4 @@
-﻿// File: DTOs/CodewarsDtos.cs
+﻿
 using System.Text.Json.Serialization;
 
 namespace DevLifeBackend.DTOs

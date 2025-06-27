@@ -1,12 +1,11 @@
-﻿// File: Services/ImageService.cs
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Serilog;
 
 namespace DevLifeBackend.Services
 {
-    // DTO for the response from the OpenAI Images API
     public class OpenAIImageResponse
     {
         [JsonPropertyName("data")]
@@ -19,7 +18,6 @@ namespace DevLifeBackend.Services
         public string Url { get; set; } = default!;
     }
 
-
     public interface IImageService
     {
         Task<byte[]?> GenerateAnalysisCardAsync(string personalityType);
@@ -27,28 +25,31 @@ namespace DevLifeBackend.Services
 
     public class ImageService : IImageService
     {
-        // We no longer need OpenAIClient for this, just the key and HttpClientFactory
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _apiKey;
+        private readonly ILogger<ImageService> _logger;
 
-        public ImageService(IHttpClientFactory httpClientFactory)
+        public ImageService(IHttpClientFactory httpClientFactory, ILogger<ImageService> logger)
         {
             _httpClientFactory = httpClientFactory;
             _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+            _logger = logger;
         }
 
         public async Task<byte[]?> GenerateAnalysisCardAsync(string personalityType)
         {
+            _logger.LogInformation("Starting AI image generation for personality type: {PersonalityType}", personalityType);
+
             var prompt = $"A funny, expressive cartoon character of a caucasian software developer, representing the personality '{personalityType}'. " +
-             "Tim Burton animations style, similar to Pixar or Dreamworks. " +
-             "The character should be quirky and fun, with exaggerated features, maybe interacting with a laptop or a coffee mug. " +
-             "Simple, vibrant background.";
+                         "Modern 3D animation style, similar to Pixar or Dreamworks. " +
+                         "The character should be quirky and fun, with exaggerated features, maybe interacting with a laptop or a coffee mug. " +
+                         "Simple, vibrant background.";
+
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("OpenAI_Direct");
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-                // Manually create the JSON payload
                 var requestBody = new
                 {
                     model = "dall-e-3",
@@ -60,15 +61,17 @@ namespace DevLifeBackend.Services
                 var jsonContent = JsonSerializer.Serialize(requestBody);
                 var stringContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                // Make the direct POST request
+                _logger.LogInformation("Sending image generation request to DALL-E 3 for personality: {PersonalityType}", personalityType);
                 var response = await httpClient.PostAsync("https://api.openai.com/v1/images/generations", stringContent);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"AI Image Generation Failed with status {response.StatusCode}: {errorContent}");
+                    _logger.LogError("AI Image Generation Failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                     return null;
                 }
+
+                _logger.LogInformation("Successfully received response from DALL-E 3.");
 
                 var responseJson = await response.Content.ReadAsStringAsync();
                 var imageResponse = JsonSerializer.Deserialize<OpenAIImageResponse>(responseJson);
@@ -76,17 +79,18 @@ namespace DevLifeBackend.Services
                 if (imageResponse != null && imageResponse.Data.Count > 0)
                 {
                     var imageUrl = imageResponse.Data[0].Url;
+                    _logger.LogInformation("Image URL received. Downloading image...");
 
-                    // Download the generated image
                     var imageDownloaderClient = _httpClientFactory.CreateClient();
                     var imageBytes = await imageDownloaderClient.GetByteArrayAsync(imageUrl);
 
+                    _logger.LogInformation("Image downloaded successfully ({SizeInKB} KB).", imageBytes.Length / 1024);
                     return imageBytes;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"AI Image Generation Exception: {ex.Message}");
+                _logger.LogError(ex, "An unhandled exception occurred during AI image generation.");
             }
 
             return null;

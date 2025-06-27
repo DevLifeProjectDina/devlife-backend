@@ -1,4 +1,4 @@
-﻿// File: Validators/UserRegistrationValidator.cs
+﻿
 using DevLifeBackend.DTOs;
 using FluentValidation;
 
@@ -6,7 +6,6 @@ namespace DevLifeBackend.Validators
 {
     public class UserRegistrationValidator : AbstractValidator<UserRegistrationDto>
     {
-        // "Unknown" is REMOVED from the list of allowed stacks for manual registration
         private readonly List<string> _allowedStacks = new() { ".NET", "React", "Angular", "Python" };
 
         public UserRegistrationValidator()
@@ -37,7 +36,6 @@ namespace DevLifeBackend.Validators
 
             RuleFor(x => x.ExperienceLevel)
                 .NotEmpty().WithMessage("Experience level is required.")
-                // "Unknown" is REMOVED from the list of allowed levels for manual registration
                 .Must(level => new[] { "Junior", "Middle", "Senior" }.Contains(level))
                 .WithMessage("Please enter a valid level: Junior, Middle, or Senior.");
 

@@ -1,29 +1,31 @@
-﻿// File: Services/GameLoopService.cs
-using DevLifeBackend.Hubs;
+﻿using DevLifeBackend.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Serilog;
 
 namespace DevLifeBackend.Services
 {
     public class GameLoopService : BackgroundService
     {
         private readonly IHubContext<BugChaseHub> _hubContext;
-        private readonly Random _random = new Random();
+        private readonly ILogger<GameLoopService> _logger;
+        private readonly Random _random = new();
 
-        public GameLoopService(IHubContext<BugChaseHub> hubContext)
+        public GameLoopService(IHubContext<BugChaseHub> hubContext, ILogger<GameLoopService> logger)
         {
             _hubContext = hubContext;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("GameLoopService is starting.");
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
-                if (_random.Next(1, 101) <= 80) // 80% шанс на препятствие
+                if (_random.Next(1, 101) <= 80)
                 {
-                    // --- LOGIC UPDATE IS HERE ---
-                    // Now we choose one of the three obstacle types randomly
                     string obstacleType;
                     int randomType = _random.Next(0, 3);
                     if (randomType == 0)
@@ -32,7 +34,7 @@ namespace DevLifeBackend.Services
                     }
                     else if (randomType == 1)
                     {
-                        obstacleType = "Meeting"; // Added "Meeting"
+                        obstacleType = "Meeting";
                     }
                     else
                     {
@@ -47,9 +49,11 @@ namespace DevLifeBackend.Services
                         Type = obstacleType,
                         Points = -25
                     };
+
+                    //_logger.LogInformation("Spawning new obstacle: {ObstacleType} at X:{PositionX}", newObstacle.Type, newObstacle.PositionX);
                     await _hubContext.Clients.All.SendAsync("NewObstacleSpawned", newObstacle, stoppingToken);
                 }
-                else // 20% шанс на бонус
+                else
                 {
                     var newPowerUp = new
                     {
@@ -59,9 +63,13 @@ namespace DevLifeBackend.Services
                         Type = _random.Next(0, 2) == 0 ? "Coffee" : "Weekend",
                         Points = 50
                     };
+
+                   // _logger.LogInformation("Spawning new power-up: {PowerUpType} at X:{PositionX}", newPowerUp.Type, newPowerUp.PositionX);
                     await _hubContext.Clients.All.SendAsync("NewPowerUpSpawned", newPowerUp, stoppingToken);
                 }
             }
+
+            _logger.LogInformation("GameLoopService is stopping.");
         }
     }
 }

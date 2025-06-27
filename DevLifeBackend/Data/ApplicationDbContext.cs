@@ -1,4 +1,4 @@
-﻿// File: Data/ApplicationDbContext.cs
+﻿
 using DevLifeBackend.Models;
 using Microsoft.EntityFrameworkCore;
 

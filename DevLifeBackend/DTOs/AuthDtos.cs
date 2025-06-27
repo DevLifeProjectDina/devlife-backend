@@ -1,4 +1,4 @@
-﻿// File: DTOs/AuthDtos.cs
+﻿
 namespace DevLifeBackend.DTOs
 {
     public record UserRegistrationDto

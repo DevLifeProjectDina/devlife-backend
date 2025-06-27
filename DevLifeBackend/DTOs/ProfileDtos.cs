@@ -1,4 +1,4 @@
-﻿// File: DTOs/ProfileDtos.cs
+﻿
 namespace DevLifeBackend.DTOs
 {
     public record CharacterCustomizationDto

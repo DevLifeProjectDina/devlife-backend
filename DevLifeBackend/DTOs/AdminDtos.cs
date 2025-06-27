@@ -1,4 +1,4 @@
-﻿// File: DTOs/AdminDtos.cs
+﻿
 namespace DevLifeBackend.DTOs
 {
     public record GenerateSnippetRequestDto

@@ -1,8 +1,9 @@
-﻿// File: Endpoints/AdminEndpoints.cs
+﻿
 using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
+using Serilog;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -12,18 +13,34 @@ public static class AdminEndpoints
     {
         var adminGroup = app.MapGroup("/api/admin").WithTags("Admin");
 
-        // FIX: The endpoint now correctly accepts 'MongoDbContext' to save the new snippet.
         adminGroup.MapPost("/casino/generate-snippet",
             async (GenerateSnippetRequestDto request, ICodewarsService codewarsService, IAiSnippetGeneratorService aiService, MongoDbContext mongoDb) =>
             {
-                var task = await codewarsService.GetRandomTaskAsync(request.Language, "Middle");
-                if (task == null) { return Results.NotFound($"Could not find a task for language: {request.Language}"); }
+                Log.Information("Starting snippet generation for language: {Language}, difficulty: {Difficulty}", request.Language, request.Difficulty);
+
+                var task = await codewarsService.GetRandomTaskAsync(request.Language, request.Difficulty);
+                if (task == null)
+                {
+                    Log.Warning("Could not find a Codewars task for language: {Language}, difficulty: {Difficulty}", request.Language, request.Difficulty);
+                    return Results.NotFound($"Could not find a task for language: {request.Language}");
+                }
+                Log.Information("Successfully fetched task '{TaskName}' from Codewars", task.Name);
 
                 var correctCode = await aiService.GenerateCorrectSnippetAsync(task.Description, request.Language);
-                if (string.IsNullOrWhiteSpace(correctCode)) { return Results.Problem("AI failed to generate a correct code solution."); }
+                if (string.IsNullOrWhiteSpace(correctCode))
+                {
+                    Log.Error("AI failed to generate a correct code solution for task: {TaskName}", task.Name);
+                    return Results.Problem("AI failed to generate a correct code solution.");
+                }
+                Log.Information("AI successfully generated a correct solution");
 
                 var buggyCode = await aiService.GenerateBuggySnippetAsync(correctCode, request.Language);
-                if (string.IsNullOrWhiteSpace(buggyCode)) { return Results.Problem("AI failed to generate a buggy version of the code."); }
+                if (string.IsNullOrWhiteSpace(buggyCode))
+                {
+                    Log.Error("AI failed to generate a buggy version of the code for task: {TaskName}", task.Name);
+                    return Results.Problem("AI failed to generate a buggy version of the code.");
+                }
+                Log.Information("AI successfully generated a buggy version");
 
                 var newSnippet = new CodeSnippet
                 {
@@ -31,12 +48,12 @@ public static class AdminEndpoints
                     CorrectCode = correctCode,
                     BuggyCode = buggyCode,
                     Description = $"Challenge: {task.Name}",
-                    Difficulty = "Middle",
+                    Difficulty = request.Difficulty,
                     Source = task.Source
                 };
 
-                // FIX: Save the new snippet to MongoDB, not PostgreSQL.
                 await mongoDb.CodeSnippets.InsertOneAsync(newSnippet);
+                Log.Information("Successfully inserted new snippet with ID {SnippetId} into MongoDB", newSnippet.Id);
 
                 return Results.Created($"/api/casino/snippets/{newSnippet.Id}", newSnippet);
             })

@@ -1,4 +1,4 @@
-﻿// File: Models/CodeSnippet.cs
+﻿
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -6,11 +6,11 @@ namespace DevLifeBackend.Models
 {
     public class CodeSnippet
     {
-        [BsonId] // Indicates this is the primary key
-        [BsonRepresentation(BsonType.ObjectId)] // Store it as an ObjectId in Mongo, but use it as a string in C#
+        [BsonId] 
+        [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
 
-        [BsonElement("Language")] // Good practice to explicitly name the field in the database
+        [BsonElement("Language")]
         public required string Language { get; set; }
 
         public required string CorrectCode { get; set; }
