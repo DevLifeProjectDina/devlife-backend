@@ -2,6 +2,8 @@
 using OpenAI;
 using OpenAI.Chat;
 using Serilog;
+using DevLifeBackend.Settings; 
+using Microsoft.Extensions.Options;
 
 namespace DevLifeBackend.Services
 {

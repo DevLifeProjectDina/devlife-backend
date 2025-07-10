@@ -1,8 +1,9 @@
 ﻿using DevLifeBackend.Data;
 using DevLifeBackend.Endpoints;
 using DevLifeBackend.Extensions;
-using DevLifeBackend.Services;
 using DevLifeBackend.Hubs;
+using DevLifeBackend.Services;
+using DevLifeBackend.Settings;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -26,6 +27,8 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
         .WriteTo.Console());
+    builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiEndpoints"));
+
 
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
     builder.Services.AddSingleton<MongoDbContext>();
@@ -53,7 +56,7 @@ try
 
     builder.Services.AddApplicationServices();
 
-    builder.Services.AddHostedService<GameLoopService>();
+   // builder.Services.AddHostedService<GameLoopService>();
 
 
     var app = builder.Build();

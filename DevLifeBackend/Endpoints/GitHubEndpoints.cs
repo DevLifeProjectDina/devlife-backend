@@ -2,10 +2,13 @@
 using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
+using DevLifeBackend.Settings; 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 using Serilog;
+using Sprache;
+using System.Net.Http.Headers;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -17,15 +20,15 @@ public static class GitHubEndpoints
     {
         var gitHubAuthGroup = app.MapGroup("/api/auth/github").WithTags("Authentication");
 
-        gitHubAuthGroup.MapGet("/redirect", () =>
+        gitHubAuthGroup.MapGet("/redirect", ([FromServices] IOptions < ApiSettings > apiSettings) =>
         {
             var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
             Log.Information("Generated GitHub redirect URL for client_id: {ClientId}", clientId);
-            var redirectUrl = $"https://github.com/login/oauth/authorize?client_id={clientId}&scope=public_repo";
+            var redirectUrl = $"{apiSettings.Value.GitHubAuthorizeEndpoint}?client_id={clientId}&scope=public_repo";
             return Results.Ok(new { RedirectUrl = redirectUrl });
         });
 
-        gitHubAuthGroup.MapGet("/callback", async (string code, IHttpClientFactory clientFactory, ApplicationDbContext db, HttpContext httpContext) =>
+        gitHubAuthGroup.MapGet("/callback", async (string code, IHttpClientFactory clientFactory, ApplicationDbContext db, HttpContext httpContext, IOptions<ApiSettings> apiSettings) =>
         {
             Log.Information("Received GitHub callback with a code.");
             var httpClient = clientFactory.CreateClient();
@@ -36,7 +39,7 @@ public static class GitHubEndpoints
                 Code = code
             };
 
-            var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, apiSettings.Value.GitHubTokenEndpoint)
             {
                 Content = JsonContent.Create(tokenRequest)
             };
@@ -63,8 +66,7 @@ public static class GitHubEndpoints
             var userClient = clientFactory.CreateClient();
             userClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DevLifePortal", "1.0"));
             userClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var gitHubUser = await userClient.GetFromJsonAsync<GitHubUserDto>("https://api.github.com/user");
+            var gitHubUser = await userClient.GetFromJsonAsync<GitHubUserDto>(apiSettings.Value.GitHubUserEndpoint);
             if (gitHubUser == null)
             {
                 Log.Error("Failed to retrieve user info from GitHub using the access token.");

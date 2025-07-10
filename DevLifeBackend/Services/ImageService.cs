@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Serilog;
+using DevLifeBackend.Settings;
+using Microsoft.Extensions.Options; 
 
 namespace DevLifeBackend.Services
 {
@@ -28,20 +30,22 @@ namespace DevLifeBackend.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _apiKey;
         private readonly ILogger<ImageService> _logger;
+        private readonly string _dalleUrl;
 
-        public ImageService(IHttpClientFactory httpClientFactory, ILogger<ImageService> logger)
+        public ImageService(IHttpClientFactory httpClientFactory, ILogger<ImageService> logger, IOptions<ApiSettings> apiSettings)
         {
             _httpClientFactory = httpClientFactory;
             _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
             _logger = logger;
+            _dalleUrl = apiSettings.Value.OpenAiImageGeneration;
         }
 
         public async Task<byte[]?> GenerateAnalysisCardAsync(string personalityType)
         {
             _logger.LogInformation("Starting AI image generation for personality type: {PersonalityType}", personalityType);
 
-            var prompt = $"A funny, expressive cartoon character of a caucasian software developer, representing the personality '{personalityType}'. " +
-                         "Modern 3D animation style, similar to Pixar or Dreamworks. " +
+            var prompt = $"A funny, expressive character of software developer, representing the personality '{personalityType}'. " +
+                         "Modern Tim Burton style" +
                          "The character should be quirky and fun, with exaggerated features, maybe interacting with a laptop or a coffee mug. " +
                          "Simple, vibrant background.";
 
@@ -62,7 +66,7 @@ namespace DevLifeBackend.Services
                 var stringContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 _logger.LogInformation("Sending image generation request to DALL-E 3 for personality: {PersonalityType}", personalityType);
-                var response = await httpClient.PostAsync("https://api.openai.com/v1/images/generations", stringContent);
+                var response = await httpClient.PostAsync(_dalleUrl, stringContent);
 
                 if (!response.IsSuccessStatusCode)
                 {

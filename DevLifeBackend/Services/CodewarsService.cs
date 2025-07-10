@@ -1,6 +1,8 @@
 ﻿using DevLifeBackend.DTOs;
 using System.Text.Json;
 using Serilog;
+using DevLifeBackend.Settings;
+using Microsoft.Extensions.Options;
 
 namespace DevLifeBackend.Services
 {
@@ -11,6 +13,7 @@ namespace DevLifeBackend.Services
         public required string Language { get; set; }
         public required string Source { get; set; }
         public required string Difficulty { get; set; }
+
     }
 
     public interface ICodewarsService
@@ -23,6 +26,7 @@ namespace DevLifeBackend.Services
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<CodewarsService> _logger;
         private static readonly Random _random = new();
+        private readonly string _codewarsApiBaseUrl;
 
         private readonly List<CodewarsTask> _fallbackTasks = new()
         {
@@ -58,10 +62,11 @@ namespace DevLifeBackend.Services
             }}
         };
 
-        public CodewarsService(IHttpClientFactory clientFactory, ILogger<CodewarsService> logger)
+        public CodewarsService(IHttpClientFactory clientFactory, ILogger<CodewarsService> logger, IOptions<ApiSettings> apiSettings)
         {
             _clientFactory = clientFactory;
             _logger = logger;
+            _codewarsApiBaseUrl = apiSettings.Value.CodewarsChallenge;
         }
 
         public async Task<CodewarsTask?> GetRandomTaskAsync(string language, string difficulty)
@@ -85,7 +90,7 @@ namespace DevLifeBackend.Services
                 _logger.LogInformation("Attempting to fetch challenge '{Slug}' from Codewars API.", randomSlug);
 
                 var client = _clientFactory.CreateClient("CodewarsClient");
-                var response = await client.GetAsync($"https://www.codewars.com/api/v1/code-challenges/{randomSlug}");
+                var response = await client.GetAsync($"{_codewarsApiBaseUrl}{randomSlug}");
 
                 if (!response.IsSuccessStatusCode)
                 {

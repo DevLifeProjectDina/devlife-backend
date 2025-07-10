@@ -36,3 +36,4 @@ System.AggregateException: Some services are not able to be constructed (Error w
 2025-06-27 17:12:15.055 +04:00 [INF] Starting up DevLife Portal
 2025-06-27 17:18:28.769 +04:00 [INF] Starting up DevLife Portal
 2025-06-27 17:23:35.069 +04:00 [INF] Starting up DevLife Portal
+2025-06-27 19:49:23.292 +04:00 [INF] Starting up DevLife Portal

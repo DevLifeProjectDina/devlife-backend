@@ -17,10 +17,10 @@ namespace DevLifeBackend.Services
 
         private readonly Dictionary<string, int> _languageIds = new()
         {
-            { ".NET", 51 },     // C#
-            { "Python", 71 },   // Python 3
-            { "React", 93 },    // JavaScript
-            { "Angular", 93 }   // JavaScript
+            { ".NET", 51 },     
+            { "Python", 71 }, 
+            { "React", 93 },  
+            { "Angular", 93 } 
         };
 
         public Judge0Service(IHttpClientFactory clientFactory, ILogger<Judge0Service> logger)
@@ -58,7 +58,7 @@ namespace DevLifeBackend.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError("Judge0 API returned a non-success status code {StatusCode}. Response: {ResponseContent}", response.StatusCode, responseContent);
-                    // Try to deserialize even on failure to get a more structured error message
+                  
                     return JsonSerializer.Deserialize<Judge0SubmissionResultDto>(responseContent);
                 }
 

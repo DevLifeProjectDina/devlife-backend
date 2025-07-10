@@ -50,7 +50,7 @@ namespace DevLifeBackend.Services
                         Points = -25
                     };
 
-                    //_logger.LogInformation("Spawning new obstacle: {ObstacleType} at X:{PositionX}", newObstacle.Type, newObstacle.PositionX);
+                    _logger.LogInformation("Spawning new obstacle: {ObstacleType} at X:{PositionX}", newObstacle.Type, newObstacle.PositionX);
                     await _hubContext.Clients.All.SendAsync("NewObstacleSpawned", newObstacle, stoppingToken);
                 }
                 else
@@ -64,7 +64,7 @@ namespace DevLifeBackend.Services
                         Points = 50
                     };
 
-                   // _logger.LogInformation("Spawning new power-up: {PowerUpType} at X:{PositionX}", newPowerUp.Type, newPowerUp.PositionX);
+                    _logger.LogInformation("Spawning new power-up: {PowerUpType} at X:{PositionX}", newPowerUp.Type, newPowerUp.PositionX);
                     await _hubContext.Clients.All.SendAsync("NewPowerUpSpawned", newPowerUp, stoppingToken);
                 }
             }

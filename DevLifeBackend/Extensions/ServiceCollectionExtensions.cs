@@ -22,6 +22,8 @@ namespace DevLifeBackend.Extensions
             services.AddValidatorsFromAssemblyContaining<Program>();
             services.AddSingleton(new OpenAIClient(Environment.GetEnvironmentVariable("OPENAI_API_KEY")));
             services.AddScoped<IExcuseService, ExcuseService>();
+            services.AddScoped<IDatingService, DatingService>();
+            services.AddScoped<IGitHubAnalyzerService, GitHubAnalyzerService>();
 
             return services;
         }
