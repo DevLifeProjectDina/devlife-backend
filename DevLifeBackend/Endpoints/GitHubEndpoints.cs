@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Sprache;
 using System.Net.Http.Headers;
+using DevLifeBackend.Enums;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -85,7 +86,7 @@ public static class GitHubEndpoints
                     Surname = "From GitHub",
                     DateOfBirth = DateTime.UtcNow.AddYears(-20),
                     Stacks = new[] { "Unknown" },
-                    ExperienceLevel = "Unknown",
+                    ExperienceLevel = ExperienceLevel.Unknown,
                     ZodiacSign = "Unknown"
                 };
                 db.Users.Add(user);

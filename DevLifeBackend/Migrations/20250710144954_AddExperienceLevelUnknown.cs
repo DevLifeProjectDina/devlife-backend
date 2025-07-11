@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DevLifeBackend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSchema : Migration
+    public partial class AddExperienceLevelUnknown : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,7 +26,8 @@ namespace DevLifeBackend.Migrations
                     ExperienceLevel = table.Column<string>(type: "text", nullable: false),
                     ZodiacSign = table.Column<string>(type: "text", nullable: true),
                     Score = table.Column<int>(type: "integer", nullable: false),
-                    WinStreak = table.Column<int>(type: "integer", nullable: false)
+                    WinStreak = table.Column<int>(type: "integer", nullable: false),
+                    BugChaseHighScore = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {

@@ -1,5 +1,6 @@
 ﻿
 using DevLifeBackend.DTOs;
+using DevLifeBackend.Enums;
 using FluentValidation;
 
 namespace DevLifeBackend.Validators
@@ -36,7 +37,12 @@ namespace DevLifeBackend.Validators
 
             RuleFor(x => x.ExperienceLevel)
                 .NotEmpty().WithMessage("Experience level is required.")
-                .Must(level => new[] { "Junior", "Middle", "Senior" }.Contains(level))
+                .Must(level => new[]
+                {
+                    ExperienceLevel.Junior,
+                    ExperienceLevel.Middle,
+                    ExperienceLevel.Senior
+                }.Contains(level))
                 .WithMessage("Please enter a valid level: Junior, Middle, or Senior.");
 
             RuleFor(x => x.DateOfBirth)

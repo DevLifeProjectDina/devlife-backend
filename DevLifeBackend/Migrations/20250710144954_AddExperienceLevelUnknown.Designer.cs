@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DevLifeBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250625140530_InitialSchema")]
-    partial class InitialSchema
+    [Migration("20250710144954_AddExperienceLevelUnknown")]
+    partial class AddExperienceLevelUnknown
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,6 +32,9 @@ namespace DevLifeBackend.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BugChaseHighScore")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("timestamp with time zone");

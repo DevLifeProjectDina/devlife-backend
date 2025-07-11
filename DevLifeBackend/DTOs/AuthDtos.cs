@@ -1,4 +1,6 @@
 ﻿
+using DevLifeBackend.Enums;
+
 namespace DevLifeBackend.DTOs
 {
     public record UserRegistrationDto
@@ -8,7 +10,7 @@ namespace DevLifeBackend.DTOs
         public required string Surname { get; init; }
         public required DateTime DateOfBirth { get; init; }
         public required string[] Stacks { get; init; }
-        public required string ExperienceLevel { get; init; }
+        public required ExperienceLevel ExperienceLevel { get; init; }
     }
     public record LoginDto
     {
