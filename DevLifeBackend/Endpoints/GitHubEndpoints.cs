@@ -85,7 +85,7 @@ public static class GitHubEndpoints
                     Name = gitHubUser.Name ?? gitHubUser.Login,
                     Surname = "From GitHub",
                     DateOfBirth = DateTime.UtcNow.AddYears(-20),
-                    Stacks = new[] { "Unknown" },
+                    Stacks = TechStack.Unknown,
                     ExperienceLevel = ExperienceLevel.Unknown,
                     ZodiacSign = "Unknown"
                 };

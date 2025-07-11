@@ -1,13 +1,25 @@
-﻿
-using DevLifeBackend.DTOs;
+﻿using DevLifeBackend.DTOs;
 using DevLifeBackend.Enums;
 using FluentValidation;
+using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace DevLifeBackend.Validators
 {
     public class UserRegistrationValidator : AbstractValidator<UserRegistrationDto>
     {
-        private readonly List<string> _allowedStacks = new() { ".NET", "React", "Angular", "Python" };
+        private static readonly HashSet<TechStack> _allowedIndividualStacks = new HashSet<TechStack>(
+            Enum.GetValues(typeof(TechStack))
+                .Cast<TechStack>()
+                .Where(ts => (int)(object)ts != 0 && ts != TechStack.Unknown)
+        );
+
+        private static readonly HashSet<ExperienceLevel> _allowedExperienceLevels = new HashSet<ExperienceLevel>(
+            Enum.GetValues(typeof(ExperienceLevel))
+                .Cast<ExperienceLevel>()
+                .Where(el => el != ExperienceLevel.Unknown)
+        );
 
         public UserRegistrationValidator()
         {
@@ -19,31 +31,55 @@ namespace DevLifeBackend.Validators
 
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
-                .MaximumLength(50)
+                .MaximumLength(50).WithMessage("Name cannot be longer than 50 characters.")
                 .Matches(@"^[\p{L}]+$").WithMessage("Name can only contain letters.");
 
             RuleFor(x => x.Surname)
                 .NotEmpty().WithMessage("Surname is required.")
-                .MaximumLength(50)
+                .MaximumLength(50).WithMessage("Surname cannot be longer than 50 characters.")
                 .Matches(@"^[\p{L}]+$").WithMessage("Surname can only contain letters.");
 
             RuleFor(x => x.Stacks)
-                .NotEmpty().WithMessage("At least one stack technology is required.");
+                .Must((dto, userStacks) =>
+                {
+                    if ((int)(object)userStacks == 0 || userStacks == TechStack.Unknown)
+                    {
+                        return false; 
+                    }
 
-            RuleForEach(x => x.Stacks)
-                .NotEmpty().WithMessage("Stack technology cannot be an empty string.")
-                .Must(stack => _allowedStacks.Contains(stack))
-                .WithMessage(x => $"Invalid stack detected. Allowed stacks are: {string.Join(", ", _allowedStacks)}");
+                    var selectedIndividualFlags = Enum.GetValues(typeof(TechStack))
+                                                      .Cast<TechStack>()
+                                                      .Where(f => (int)(object)f != 0 && f != TechStack.Unknown && userStacks.HasFlag(f))
+                                                      .ToList();
+
+                    if (!selectedIndividualFlags.Any())
+                    {
+                        return false;
+                    }
+
+                    foreach (var selectedFlag in selectedIndividualFlags)
+                    {
+                        if (!_allowedIndividualStacks.Contains(selectedFlag))
+                        {
+                            return false; 
+                        }
+                    }
+
+                    return true; 
+                })
+                .WithMessage($"You must select at least one technology. Allowed technologies are: {string.Join(", ", _allowedIndividualStacks.Select(s => s.ToString()))}");
 
             RuleFor(x => x.ExperienceLevel)
-                .NotEmpty().WithMessage("Experience level is required.")
-                .Must(level => new[]
+                .Must((dto, userExperienceLevel) =>
                 {
-                    ExperienceLevel.Junior,
-                    ExperienceLevel.Middle,
-                    ExperienceLevel.Senior
-                }.Contains(level))
-                .WithMessage("Please enter a valid level: Junior, Middle, or Senior.");
+                    if (userExperienceLevel == ExperienceLevel.Unknown)
+                    {
+                        return false;
+                    }
+
+                    return _allowedExperienceLevels.Contains(userExperienceLevel);
+                })
+                .WithMessage($"You must select an experience level. Allowed levels are: {string.Join(", ", _allowedExperienceLevels.Select(el => el.ToString()))}");
 
             RuleFor(x => x.DateOfBirth)
                 .NotEmpty().WithMessage("Date of birth is required.")

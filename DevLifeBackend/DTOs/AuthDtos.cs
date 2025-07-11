@@ -9,7 +9,7 @@ namespace DevLifeBackend.DTOs
         public required string Name { get; init; }
         public required string Surname { get; init; }
         public required DateTime DateOfBirth { get; init; }
-        public required string[] Stacks { get; init; }
+        public required TechStack Stacks { get; init; }
         public required ExperienceLevel ExperienceLevel { get; init; }
     }
     public record LoginDto

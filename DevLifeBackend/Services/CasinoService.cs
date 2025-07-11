@@ -1,5 +1,6 @@
 ﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
+using DevLifeBackend.Enums;
 using DevLifeBackend.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace DevLifeBackend.Services
         Task<CasinoChallengeDto?> GetRandomChallengeAsync(string language, string difficulty, ISession session);
         Task<BetResultDto> ProcessBetAsync(int userId, CasinoBetDto bet, string correctAnswer);
         Task<IEnumerable<LeaderboardEntryDto>> GetLeaderboardAsync();
-        Task<CasinoChallengeDto?> GetDailyChallengeAsync(string[] userStacks, ISession session);
+        Task<CasinoChallengeDto?> GetDailyChallengeAsync(TechStack userStacks, ISession session);
     }
 
     public class CasinoService : ICasinoService
@@ -35,26 +36,44 @@ namespace DevLifeBackend.Services
         public async Task<CasinoChallengeDto?> GetRandomChallengeAsync(string language, string difficulty, ISession session)
         {
             _logger.LogInformation("Fetching random casino challenge for Language: {Language}, Difficulty: {Difficulty}", language, difficulty);
+
+            if (!Enum.TryParse(language, true, out TechStack targetLanguage))
+            {
+                _logger.LogWarning("Invalid language string provided for random challenge: {Language}", language);
+               
+            }
+
+            if (!Enum.TryParse(difficulty, true, out ExperienceLevel targetDifficulty))
+            {
+                _logger.LogWarning("Invalid difficulty string provided for random challenge: {Difficulty}", difficulty);
+               
+            }
+
             var snippets = await _mongoContext.CodeSnippets
-                .Find(s => s.Language == language && s.Difficulty == difficulty)
+                .Find(s =>
+                    (s.Language & targetLanguage) != 0 &&
+                    s.Difficulty == targetDifficulty
+                )
                 .ToListAsync();
 
             if (!snippets.Any())
             {
-                _logger.LogWarning("No random casino challenge found for Language: {Language}, Difficulty: {Difficulty}", language, difficulty);
+                _logger.LogWarning("No random casino challenge found for Language: {Language}, Difficulty: {Difficulty} after filtering.", language, difficulty);
                 return null;
             }
 
             var randomSnippet = snippets[_random.Next(snippets.Count)];
             _logger.LogInformation("Found random challenge with ID: {SnippetId}", randomSnippet.Id);
+
             return MapSnippetToChallengeDto(randomSnippet, session);
         }
-
-        public async Task<CasinoChallengeDto?> GetDailyChallengeAsync(string[] userStacks, ISession session)
+        public async Task<CasinoChallengeDto?> GetDailyChallengeAsync(TechStack userStacks, ISession session)
         {
             _logger.LogInformation("Fetching daily challenge for user stacks: {Stacks}", userStacks);
+
             var suitableSnippets = await _mongoContext.CodeSnippets
-                .Find(s => userStacks.Contains(s.Language))
+                
+                .Find(s => (s.Language & userStacks) != 0)
                 .ToListAsync();
 
             if (!suitableSnippets.Any())
@@ -68,7 +87,6 @@ namespace DevLifeBackend.Services
             _logger.LogInformation("Today's daily challenge is Snippet with ID: {SnippetId}", dailySnippet.Id);
             return MapSnippetToChallengeDto(dailySnippet, session);
         }
-
         public async Task<BetResultDto> ProcessBetAsync(int userId, CasinoBetDto bet, string correctAnswer)
         {
             var user = await _postgresContext.Users.FindAsync(userId);
@@ -127,7 +145,11 @@ namespace DevLifeBackend.Services
         public async Task<IEnumerable<LeaderboardEntryDto>> GetLeaderboardAsync()
         {
             var topUsers = await _postgresContext.Users.OrderByDescending(u => u.Score).Take(10)
-                .Select(u => new LeaderboardEntryDto { Username = u.Username, Stack = string.Join(", ", u.Stacks), Score = u.Score })
+                .Select(u => new LeaderboardEntryDto
+                {
+                    Username = u.Username, 
+                    Stack = u.Stacks.ToString(), 
+                    Score = u.Score })
                 .ToListAsync();
             return topUsers;
         }
@@ -138,7 +160,14 @@ namespace DevLifeBackend.Services
             var correctOptionKey = $"CasinoAnswer_{snippet.Id}";
             var correctOptionValue = isCorrectCodeOptionA ? "A" : "B";
             session.SetString(correctOptionKey, correctOptionValue);
-            return new CasinoChallengeDto { SnippetId = snippet.Id, Description = snippet.Description ?? "Guess which code snippet works correctly!", Language = snippet.Language, CodeOptionA = isCorrectCodeOptionA ? snippet.CorrectCode : snippet.BuggyCode, CodeOptionB = isCorrectCodeOptionA ? snippet.BuggyCode : snippet.CorrectCode, Source = snippet.Source };
+            return new CasinoChallengeDto 
+            {
+                SnippetId = snippet.Id, 
+                Description = snippet.Description ?? "Guess which code snippet works correctly!",
+                Language = snippet.Language.ToString(),
+                CodeOptionA = isCorrectCodeOptionA ? snippet.CorrectCode : snippet.BuggyCode,
+                CodeOptionB = isCorrectCodeOptionA ? snippet.BuggyCode : snippet.CorrectCode, 
+                Source = snippet.Source };
         }
     }
 }

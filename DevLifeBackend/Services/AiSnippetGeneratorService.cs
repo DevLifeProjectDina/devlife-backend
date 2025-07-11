@@ -1,4 +1,5 @@
-﻿using OpenAI;
+﻿using DevLifeBackend.Enums;
+using OpenAI;
 using OpenAI.Chat;
 using Serilog;
 
@@ -8,6 +9,8 @@ namespace DevLifeBackend.Services
     {
         Task<string?> GenerateBuggySnippetAsync(string correctCode, string language);
         Task<string?> GenerateCorrectSnippetAsync(string description, string language);
+        TechStack ParseLanguageString(string languageString);
+        ExperienceLevel ParseDifficultyString(string difficultyString);
     }
 
     public class AiSnippetGeneratorService : IAiSnippetGeneratorService
@@ -54,7 +57,27 @@ namespace DevLifeBackend.Services
                 return null;
             }
         }
+        public TechStack ParseLanguageString(string languageString)
+        {
+            if (Enum.TryParse(languageString, true, out TechStack languageEnum))
+            {
+                return languageEnum;
+            }
+           
+            _logger.LogError("Invalid language string: {Language}", languageString);
+            throw new ArgumentException($"Invalid language: {languageString}");
+        }
 
+        public ExperienceLevel ParseDifficultyString(string difficultyString)
+        {
+            if (Enum.TryParse(difficultyString, true, out ExperienceLevel difficultyEnum))
+            {
+                return difficultyEnum;
+            }
+         
+            _logger.LogError("Invalid difficulty string: {Difficulty}", difficultyString);
+            throw new ArgumentException($"Invalid difficulty: {difficultyString}");
+        }
         public async Task<string?> GenerateCorrectSnippetAsync(string description, string language)
         {
             var prompt =

@@ -4,6 +4,7 @@ using DevLifeBackend.DTOs;
 using DevLifeBackend.Models;
 using DevLifeBackend.Services;
 using Serilog;
+using DevLifeBackend.Enums;
 
 namespace DevLifeBackend.Endpoints;
 
@@ -42,20 +43,33 @@ public static class AdminEndpoints
                 }
                 Log.Information("AI successfully generated a buggy version");
 
-                var newSnippet = new CodeSnippet
+                try
                 {
-                    Language = request.Language,
-                    CorrectCode = correctCode,
-                    BuggyCode = buggyCode,
-                    Description = $"Challenge: {task.Name}",
-                    Difficulty = request.Difficulty,
-                    Source = task.Source
-                };
+                    var newSnippet = new CodeSnippet
+                    {
+                        Language = aiService.ParseLanguageString(request.Language),
+                        CorrectCode = correctCode,
+                        BuggyCode = buggyCode,
+                        Description = $"Challenge: {task.Name}",
+                        Difficulty = aiService.ParseDifficultyString(request.Difficulty),
+                        Source = task.Source
+                    };
 
-                await mongoDb.CodeSnippets.InsertOneAsync(newSnippet);
-                Log.Information("Successfully inserted new snippet with ID {SnippetId} into MongoDB", newSnippet.Id);
+                    await mongoDb.CodeSnippets.InsertOneAsync(newSnippet);
+                    Log.Information("Successfully inserted new snippet with ID {SnippetId} into MongoDB", newSnippet.Id);
 
-                return Results.Created($"/api/casino/snippets/{newSnippet.Id}", newSnippet);
+                    return Results.Created($"/api/casino/snippets/{newSnippet.Id}", newSnippet);
+                }
+                catch (ArgumentException ex)
+                {
+                    Log.Error(ex, "Validation error during snippet generation: {ErrorMessage}", ex.Message);
+                    return Results.BadRequest(ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "An unexpected error occurred during snippet generation.");
+                    return Results.Problem("An unexpected error occurred during snippet generation.");
+                }
             })
         .WithName("GenerateCasinoSnippetFullyAutomated")
         .Produces<CodeSnippet>(StatusCodes.Status201Created);

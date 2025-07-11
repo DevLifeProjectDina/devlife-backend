@@ -9,7 +9,7 @@ public class User
     public required string Name { get; set; }
     public required string Surname { get; set; }
     public DateTime DateOfBirth { get; set; }
-    public required string[] Stacks { get; set; }
+    public required TechStack Stacks { get; set; }
     public required ExperienceLevel ExperienceLevel { get; set; }
     public string? ZodiacSign { get; set; }
     public int Score { get; set; } = 100;

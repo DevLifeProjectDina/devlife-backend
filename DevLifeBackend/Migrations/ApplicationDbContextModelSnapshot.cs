@@ -17,7 +17,7 @@ namespace DevLifeBackend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -48,8 +48,7 @@ namespace DevLifeBackend.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("integer");
 
-                    b.PrimitiveCollection<string[]>("Stacks")
-                        .IsRequired()
+                    b.Property<int>("Stacks")
                         .HasColumnType("text[]");
 
                     b.Property<string>("Surname")

@@ -1,5 +1,6 @@
 ﻿using DevLifeBackend.Data;
 using DevLifeBackend.DTOs;
+using DevLifeBackend.Extensions;
 using DevLifeBackend.Models;
 using MongoDB.Driver;
 using OpenAI;
@@ -37,7 +38,7 @@ namespace DevLifeBackend.Services
                 Id = p.Id!,
                 Name = p.Name,
                 Age = p.Age,
-                Stacks = p.Stacks,
+                Stacks = p.Stacks.ToFlagNames(),
                 Bio = p.Bio
             }).ToList();
         }
