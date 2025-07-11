@@ -1,4 +1,5 @@
 ﻿
+using DevLifeBackend.Configurations;
 using DevLifeBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,9 +15,8 @@ namespace DevLifeBackend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>()
-                .Property(u => u.ExperienceLevel)
-                .HasConversion<string>(); 
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
+
         }
     }
 }

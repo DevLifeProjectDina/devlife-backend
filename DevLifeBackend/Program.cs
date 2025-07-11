@@ -6,6 +6,7 @@ using DevLifeBackend.Services;
 using DevLifeBackend.Settings;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using OpenAI;
 using Serilog;
@@ -27,9 +28,7 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
         .WriteTo.Console());
-    builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiEndpoints"));
-
-
+    builder.Services.AddValidatorsFromAssemblyContaining<Program>();
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
     builder.Services.AddSingleton<MongoDbContext>();
     builder.Services.AddStackExchangeRedisCache(options => {
@@ -41,23 +40,10 @@ try
         options.Cookie.HttpOnly = true;
         options.Cookie.IsEssential = true;
     });
-
-    builder.Services.AddHttpClient("HoroscopeClient", client => { client.Timeout = TimeSpan.FromSeconds(3); });
-    builder.Services.AddHttpClient("CodewarsClient", client => { client.DefaultRequestHeaders.Add("User-Agent", "DevLifePortal/1.0"); });
-    builder.Services.AddHttpClient("Judge0Client", client => {
-        client.BaseAddress = new Uri("https://judge0-ce.p.rapidapi.com/");
-        client.DefaultRequestHeaders.Add("X-RapidAPI-Key", Environment.GetEnvironmentVariable("JUDGE0_API_KEY"));
-        client.DefaultRequestHeaders.Add("X-RapidAPI-Host", Environment.GetEnvironmentVariable("JUDGE0_HOST"));
-    });
-
     builder.Services.AddSignalR();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
-
     builder.Services.AddApplicationServices();
-
-   // builder.Services.AddHostedService<GameLoopService>();
-
 
     var app = builder.Build();
 
